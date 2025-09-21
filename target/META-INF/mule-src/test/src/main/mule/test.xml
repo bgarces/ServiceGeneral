@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:validation="http://www.mulesoft.org/schema/mule/validation"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:java="http://www.mulesoft.org/schema/mule/java" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/java http://www.mulesoft.org/schema/mule/java/current/mule-java.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd
+http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="a487e6bd-6267-4bbf-bfd0-3a9b8e7beeac" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<validation:config name="Validation_Config" doc:name="Validation Config" doc:id="94988afb-86a4-4207-a66a-3f1e8a651f23" />
+	<flow name="testFlow">
+	  <http:listener config-ref="HTTP_Listener_config" path="/process" outputMimeType="application/json" allowedMethods="POST">
+			<http:response statusCode="#[vars.errorStatusCode]" />
+		</http:listener>
+		<apikit:router doc:name="APIkit Router" doc:id="fb363415-b237-4a42-b365-4026231c59de" />
+		<validation:all doc:name="Validation - Request Data" doc:id="9d0141d7-b86e-4efd-82cc-51666de6047b" >
+			<validation:is-true doc:name="Validate Name" doc:id="454e79dc-a71b-453f-bb2e-a4c4d76e8293" config-ref="Validation_Config" expression="#[payload.name != null and payload.name is String]" message="Field invalidate (name)">
+		</validation:is-true>
+			<validation:is-true doc:name="Validate amount" doc:id="3b77614d-5ca2-44ac-bd78-c1affe7383d2" config-ref="Validation_Config" expression="#[payload.amount !=null and payload.amount is Number]" message="Field amount invalidate" />
+		</validation:all>
+		<logger level="INFO" doc:name="Validation Info" doc:id="03d2c44f-f32a-4dd3-8a5e-c8353dcbacf8" message="Validation Success"/>
+		<java:invoke-static doc:name="Java Class" doc:id="b6279e66-5fbe-4197-b17e-a34d6fe6044e" class="test.Procesador" outputEncoding="UTF-8" method="modificar(java.lang.String)">
+			<java:args ><![CDATA[#[{texto: payload.name}]]]></java:args>
+		</java:invoke-static>
+		<ee:transform doc:name="Response Data" doc:id="9839de60-0519-4e37-bb0e-a60421d3e5fc" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+
+{
+	result: payload
+}
+
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="203b7d24-ec1f-4201-b189-791b74eb04cd" message='"Finished"'/>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="af0c0ea0-5975-4609-b0e9-1634fa368373" type="VALIDATION:INVALID_BOOLEAN, VALIDATION:MULTIPLE">
+				<set-variable value="400" doc:name="Set Code REST" doc:id="bcc59d61-e76b-4b9d-96c1-3f8facb92215" variableName="errorStatusCode"/>
+				<set-payload doc:name="Set Error Response" doc:id="9c728850-66a5-4990-8808-2f566931d8be" value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	code: "VALIDATION_ERROR",&#10;	message: error.description&#10;}]'/>
+				<logger level="ERROR" doc:name="Logger" doc:id="96191d8c-c5a7-4697-aba1-ba0678cec5e2" message="#[error.description]"/>
+			</on-error-continue>
+		</error-handler>
+	</flow>
+</mule>

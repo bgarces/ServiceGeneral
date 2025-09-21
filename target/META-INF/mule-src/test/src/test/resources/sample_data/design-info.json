@@ -1,0 +1,11 @@
+{
+  "sampleData": {
+    "4c28334b-5722-4ada-922d-2f6be6cc8559": {
+      "payload": "sample_data/defaultstringtype_1.dwl",
+      "vars-message": "sample_data/defaultstringtype.dwl"
+    },
+    "122a0212-c2f0-422d-a51d-b2e47417da1a": {
+      "payload": "sample_data/java.dwl"
+    }
+  }
+}
